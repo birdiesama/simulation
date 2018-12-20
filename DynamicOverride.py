@@ -65,7 +65,7 @@ class GuiFunc ( object ) :
             for item in list :
                 pm.textScrollList ( self.tsl , e = True , append = item ) ;
  
-        def selection ( self ) :
+        def getSelected ( self ) :
             return ( pm.textScrollList ( self.tsl , q = True , si = True ) ) ;
     
     class FloatField ( object ) :
@@ -92,11 +92,35 @@ class GuiFunc ( object ) :
     def hairSystem_refresh_cmd ( self , *args ) :
         
         self.guiUpdate_hairSystemTsl_func ( ) ;
+    
+    def getFol ( self , hairSystem ) :
+       
+        hairSystem = pm.PyNode ( hairSystem ) ;
         
-    def printValue_cmd ( self , *args ) :
+        folTfm_list = hairSystem.listConnections ( type = 'follicle' ) ;
+        fol_list = [] ;
         
-        ff = self.FloatField ( lengthFlex_min_floatField )
- 
+        for folTfm in folTfm_list :
+            fol_list.append ( folTfm.getShape() ) ;
+        
+        return fol_list ;
+                
+    def getArcLen ( self , hairSystem ) :
+        
+        hairSystem = pm.PyNode ( hairSystem ) ;
+           
+    def set_cmd ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        
+        hairSystem_list = tsl.getSelected() ;
+        
+        for hairSystem in hairSystem_list :
+            
+            hairSystem = pm.PyNode ( hairSystem ) ;
+            
+            print self.getFol ( hairSystem ) ;
+            
 class Gui ( object ) :
  
     def __init__ ( self ) :
@@ -118,7 +142,28 @@ class Gui ( object ) :
         if pm.window ( ui , exists = True ) :
             pm.deleteUI ( ui ) ;
             self.checkUniqueness ( ui ) ;
- 
+    
+    ### specific gui func ###
+    
+    def insertAttr ( self , list ) :
+        
+        w = self.width ;
+        
+        attr = list[0] ;
+        niceName = self.composeNiceName ( attr ) ;
+        defaultValue = list[1] ;
+        min = list[2][0] ;
+        max = list[2][1] ;
+
+        cmd = """                        
+pm.text ( label = '{niceName}' , w = w/6 ) ;
+self.{attr}_defaultValue_floatField = pm.floatField ( precision = 3 , v = {defaultValue} , enable = False , w = w/6 ) ;
+self.{attr}_min_floatField = pm.floatField ( precision = 3 , v = {min} , w = w/3 ) ;
+self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3 ) ;
+""".format ( attr = attr , niceName = niceName , defaultValue = defaultValue , min = min , max = max ) ;
+
+        exec ( cmd ) ;
+
     def showGui ( self ) :
  
         w = self.width ;
@@ -139,7 +184,7 @@ class Gui ( object ) :
         with window :
             
             # main layout
-            with pm.rowColumnLayout ( nc = 1 , w = w ) :
+:            with pm.rowColumnLayout ( nc = 1 , w = w ) :
             
                 # hairSystem text scroll list
                 with pm.rowColumnLayout ( nc = 1 , w = w ) :
@@ -157,57 +202,95 @@ class Gui ( object ) :
                 # Dynamic Override , Collide
                 pm.separator ( vis = False , h = 15 ) ;
                 
-                with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
-                    pm.checkBox ( label = 'Dynamic Override' , w = w/2 , value = True ) ;
-                    pm.checkBox ( label = 'Collide' , w = w/2 , value = True ) ;
+                cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
+                with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
+                    pm.text ( label = '' ) ;
+                    pm.checkBox ( label = 'Dynamic Override' , w = w/3 , value = True ) ;
+                    pm.checkBox ( label = 'Collide' , w = w/3 , value = True ) ;
+                    pm.text ( label = '' ) ;                    
                     
-                # Common Attributes
+                # Common Attributes        
                 pm.separator ( vis = False , h = 15 ) ;
-
-                def insertAttr ( list ) :
-                
-
-                with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/6 ) , ( 2 , w/6 ) , ( 3 , w/3 ) , ( 4 , w/3 ) ] ) :
+               
+                with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
 
                     pm.text ( label = 'Attr' , w = w/6  ) ;
                     pm.text ( label = '(Default Val)' , w = w/6 ) ;
-                    pm.text ( label = 'Min Value' ) ;
-                    pm.text ( label = 'Max Value' ) ;
+                    pm.text ( label = 'Shortest Crv Value' ) ;
+                    pm.text ( label = 'Longest Crv Value' ) ;
+                    
+                compAttr_list = [] ;
+                # name , default value , [ min , max ]
+                compAttr_list.append ( [ 'lengthFlex' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'damp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'stiffness' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                
+                with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
+                    
+                    for compAttr in compAttr_list :    
+                        self.insertAttr ( compAttr ) ;
+                
+                # change to frame layout here
+                pm.separator ( vis = False , h = 15 ) ;
+                
+                pm.text ( label = 'Stiffness Scale' , align = 'left' ) ;
+                pm.separator () ;
+                    
+                with pm.rowColumnLayout ( nc = 1 , w = w ) :
+                    
+                    with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
+                        pm.text ( label = '' ) ;
+                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
+                    
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'lengthFlex' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
-                    compAttr_list.append ( [ 'damp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
-                    compAttr_list.append ( [ 'stiffness' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'clumpWidth' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
                     
+                    with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                     
-                    for compAttr in compAttr_list :
+                        for compAttr in compAttr_list :
+                            self.insertAttr ( compAttr ) ;
                     
-                        attr = compAttr[0] ;
-                        niceName = self.composeNiceName ( attr ) ;
-                        defaultValue = compAttr[1] ;
-                        min = compAttr[2][0] ;
-                        max = compAttr[2][1] ;
+                # change to frame layout here
+                pm.separator ( vis = False , h = 15 ) ;
+                
+                pm.text ( label = 'Clump Width Scale' , align = 'left' ) ;
+                pm.separator () ;
+                
+                with pm.rowColumnLayout ( nc = 1 , w = w ) :
+
+                    with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
+                        pm.text ( label = '' ) ;
+                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
+                    
+                # change to frame layout here
+                
+                pm.separator ( vis = False , h = 15 ) ;
+                
+                pm.text ( label = 'Attraction Scale' , align = 'left' ) ;
+                pm.separator () ;
+                
+                with pm.rowColumnLayout ( nc = 1 , w = w ) :
+                    
+                    with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
+                        pm.text ( label = '' ) ;
+                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
+                    
+                    compAttr_list = [] ;
+                    compAttr_list.append ( [ 'startCurveAttract' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'attractionDamp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                    
+                    with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                         
-                        cmd = """                        
-pm.text ( label = '{niceName}' , w = w/6 ) ;
-self.{attr}_defaultValue_floatField = pm.floatField ( precision = 3 , v = {defaultValue} , enable = False ) ;
-self.{attr}_min_floatField = pm.floatField ( precision = 3 , v = {min} ) ;
-self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} ) ;
-""".format ( attr = attr , niceName = niceName , defaultValue = defaultValue , min = min , max = max ) ;
-
-                        exec ( cmd ) ;
-
-                    '''
-                    pm.text ( label = 'Length Flex' , w = w/6 ) ;
-                    pm.text ( label = '(0.1)' , w = w/6 ) ;
-                    self.lengthFlex_min_floatField = pm.floatField ( precision = 2 ) ;
-                    self.lengthFlex_max_floatField = pm.floatField ( precision = 2 ) ;
-                    '''
-                    
+                        for compAttr in compAttr_list :
+                            self.insertAttr ( compAttr ) ;
+                
+                pm.separator ( vis = False , h = 15 ) ;
+                
                 # set, and reset to dynamic override default values
                 with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
 
-                    pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) ) ;
+                    pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_cmd ) ;
                     pm.button ( label = 'Reset to Default Values' , w = w/2 ) ;
  
         window.show () ;
@@ -227,3 +310,5 @@ def run ( *args ) :
     main.run() ;
  
 run () ;
+
+# make some follicle stiff by selecting curves
