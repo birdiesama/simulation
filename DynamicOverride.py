@@ -104,7 +104,51 @@ class GuiFunc ( object ) :
             fol_list.append ( folTfm.getShape() ) ;
         
         return fol_list ;
-                
+    
+    ### Enable / Disable [ Dynamic Override / Collide ] ###
+     
+    def enableFollicleAttr_func ( self , hairSystem , attr , value ) :
+        
+        hairSystem = pm.PyNode ( hairSystem ) ;
+        
+        fol_list = self.getFol ( hairSystem ) ;
+        
+        for fol in fol_list :
+            
+            exec ( "fol.{attr}.set({value}) ;".format ( attr = attr , value = value ) ) ;
+            
+    def enableDynamicOverride_cmd ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        hairSystem_list = tsl.getSelected() ;
+        
+        for hairSystem in hairSystem_list :
+            self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'overrideDynamics' , value = 1 ) ;
+    
+    def disableDynamicOverride_cmd ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        hairSystem_list = tsl.getSelected() ;
+        
+        for hairSystem in hairSystem_list :
+            self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'overrideDynamics' , value = 0 ) ;
+    
+    def enableCollide_cmd ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        hairSystem_list = tsl.getSelected() ;
+        
+        for hairSystem in hairSystem_list :
+            self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 1 ) ;
+    
+    def disableCollide_cmd ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        hairSystem_list = tsl.getSelected() ;
+        
+        for hairSystem in hairSystem_list :
+            self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 0 ) ;
+    
     def getArcLen ( self , hairSystem ) :
         
         hairSystem = pm.PyNode ( hairSystem ) ;
@@ -184,7 +228,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
         with window :
             
             # main layout
-:            with pm.rowColumnLayout ( nc = 1 , w = w ) :
+            with pm.rowColumnLayout ( nc = 1 , w = w ) :
             
                 # hairSystem text scroll list
                 with pm.rowColumnLayout ( nc = 1 , w = w ) :
@@ -194,25 +238,27 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                         self.hairSystem_refresh_btn = pm.button ( label = 'Refresh' ,
                             c = self.hairSystem_refresh_cmd ) ;
 
-                    self.hairSystem_tsl = pm.textScrollList ( w = w , h = 100 ,
-                        ams = True ) ;
-
+                    self.hairSystem_tsl = pm.textScrollList ( w = w , h = 100 , ams = True ) ;
+                    
+                # Dynamic Override , Collide
+                
+                lw = w/2 ; # local width
+                cw = [ ( 1 , lw ) , ( 2 , lw ) ] ;
+                with pm.rowColumnLayout ( nc = 2 , cw = cw ) :
+                        
+                    pm.button ( label = 'Enable Dynamic Override' , w = lw , c = self.enableDynamicOverride_cmd ) ;
+                    pm.button ( label = 'Disable Dynamic Override' , w = lw , c = self.disableDynamicOverride_cmd ) ;
+                    
+                    pm.button ( label = 'Enable Collide' , w = lw , c = self.enableCollide_cmd ) ;
+                    pm.button ( label = 'Disable Collide' , w = lw , c = self.disableCollide_cmd ) ;
+                
                 ### Attribute Input
                
-                # Dynamic Override , Collide
-                pm.separator ( vis = False , h = 15 ) ;
-                
-                cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
-                with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
-                    pm.text ( label = '' ) ;
-                    pm.checkBox ( label = 'Dynamic Override' , w = w/3 , value = True ) ;
-                    pm.checkBox ( label = 'Collide' , w = w/3 , value = True ) ;
-                    pm.text ( label = '' ) ;                    
-                    
                 # Common Attributes        
                 pm.separator ( vis = False , h = 15 ) ;
                
-                with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
+                cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
+                with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
 
                     pm.text ( label = 'Attr' , w = w/6  ) ;
                     pm.text ( label = '(Default Val)' , w = w/6 ) ;
@@ -225,7 +271,8 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                 compAttr_list.append ( [ 'damp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
                 compAttr_list.append ( [ 'stiffness' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
                 
-                with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
+                cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
+                with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
                     
                     for compAttr in compAttr_list :    
                         self.insertAttr ( compAttr ) ;
@@ -241,7 +288,6 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                     with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
                         pm.text ( label = '' ) ;
                         pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
-                    
                     
                     compAttr_list = [] ;
                     compAttr_list.append ( [ 'clumpWidth' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
