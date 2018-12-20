@@ -149,10 +149,63 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 0 ) ;
     
-    def getArcLen ( self , hairSystem ) :
+    ### Set ###
+
+    '''
+    def getArclen ( self , hairSystem ) :
+        # return min/max length
         
         hairSystem = pm.PyNode ( hairSystem ) ;
-           
+                        
+        arclen_list = [] ;
+        
+        fol_list = self.getFol ( hairSystem ) ;
+        
+        for fol in fol_list :
+            
+            crvTfm = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
+            
+            arclen_list.append ( pm.arclen ( crvTfm.getShape() ) ) ;
+                                
+        arclen_list.sort() ;
+                                
+        minlen = arclen_list[0] ;
+        maxlen = arclen_list[-1] ;
+                                
+        return minlen , maxlen ;
+    '''
+    
+    def getFolLenDict_func ( self , hairSystem ) :
+        
+        hairSystem = pm.PyNode ( hairSystem ) ;
+        
+        arclen_list = [] ;
+        folLen_dict = {} ;
+        
+        fol_list = self.getFol ( hairSystem ) ;
+        
+        for fol in fol_list :
+            
+            crvTfm = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
+            
+            arclen = pm.arclen ( crvTfm.getShape() ) ;
+            
+            arclen_list.append ( arclen ) ;
+            folLen_dict[str(fol)] = arclen ;
+        
+        arclen_list.sort() ;
+        
+        minlen = arclen_list[0] ;
+        maxlen = arclen_list[-1] ;
+        
+        folLen_dict['min'] = minlen ;
+        folLen_dict['max'] = maxlen ;
+        
+#         print folLen_dict['min'] ;
+#         print folLen_dict['max'] ;
+        
+        return folLen_dict ;
+        
     def set_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
@@ -162,8 +215,8 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             
             hairSystem = pm.PyNode ( hairSystem ) ;
-            
-            print self.getFol ( hairSystem ) ;
+                                    
+            print self.getFolLenDict_func ( hairSystem ) ;
             
 class Gui ( object ) :
  
