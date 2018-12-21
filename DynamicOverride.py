@@ -148,6 +148,65 @@ class GuiFunc ( object ) :
         
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 0 ) ;
+        
+    def querryGraph ( self , hairSystem , attribute ) :
+        
+        hairSystem = pm.PyNode ( hairSystem ) ;
+        
+        attrSize = pm.getAttr ( "{hairSystem}.{attribute}".format ( hairSystem = hairSystem , attribute = attribute ) , size = True ) ;
+        
+        attr_dict = {} ;
+        
+        counter = 0 ;
+        
+        for i in range ( 0 , attrSize ) :
+            
+            index = i + 1 ;
+            
+            point = 'point.%s' % str ( index ) ;
+            
+            floatValue = pm.getAttr (
+                "{hairSystem}.{attribute}[{index}].{attribute}_FloatValue".format (
+                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
+            
+            position = pm.getAttr (
+                "{hairSystem}.{attribute}[{index}].{attribute}_Position".format (
+                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
+            
+            attractionScale = pm.getAttr (
+                "{hairSystem}.{attribute}[{index}].{attribute}_Interp".format (
+                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
+            
+            while ( floatValue == 0.0 ) and ( position == 0.0 ) and ( attractionScale == 0 ) :
+                                
+                pm.removeMultiInstance (
+                    "{hairSystem}.attractionScale[{counterIndex}]".format (
+                        hairSystem = hairSystem , counterIndex = str( i + counter ) ),
+                        b = True ) ;
+                
+                counter += 1 ;
+                
+                floatValue = pm.getAttr (
+                    "{hairSystem}.{attribute}[{index}].{attribute}_FloatValue".format (
+                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
+
+                position = pm.getAttr (
+                    "{hairSystem}.{attribute}[{index}].{attribute}_Position".format (
+                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
+
+                attractionScale = pm.getAttr (
+                    "{hairSystem}.{attribute}[{index}].{attribute}_Interp".format (
+                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
+                
+                # kill infinate loop
+                if counter == 100 :
+                    print ( 'the counter has reached the upper limit of 100, please check the script' ) ;
+                    break ;
+                    
+                attr_dict [ str( point ) ] = [ floatValue , position , attractionScale ] ; 
+            
+        return [ attr_dict , attrSize ] ;
+
     
     ### Set ###
 
