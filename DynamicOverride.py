@@ -76,6 +76,14 @@ class GuiFunc ( object ) :
         def getValue ( self ) :
             return ( pm.floatField ( self.ff , q = True , v = True ) ) ;
  
+    class CheckBox ( object ) :
+
+        def __init__ ( self , cbx ) :
+            self.cbx = cbx ;
+
+        def getValue ( self ) :
+            return ( pm.checkBox ( self.cbx , q = True , v = True ) ) ;
+
     def guiInitialize_func ( self ) :
  
         self.guiUpdate_hairSystemTsl_func() ;
@@ -93,7 +101,7 @@ class GuiFunc ( object ) :
         
         self.guiUpdate_hairSystemTsl_func ( ) ;
     
-    def getFol ( self , hairSystem ) :
+    def getFol_func ( self , hairSystem ) :
        
         hairSystem = pm.PyNode ( hairSystem ) ;
         
@@ -103,6 +111,9 @@ class GuiFunc ( object ) :
         for folTfm in folTfm_list :
             fol_list.append ( folTfm.getShape() ) ;
         
+        fol_list = set ( fol_list ) ;
+        fol_list = list ( fol_list ) ;
+
         return fol_list ;
     
     ### Enable / Disable [ Dynamic Override / Collide ] ###
@@ -111,13 +122,13 @@ class GuiFunc ( object ) :
         
         hairSystem = pm.PyNode ( hairSystem ) ;
         
-        fol_list = self.getFol ( hairSystem ) ;
+        fol_list = self.getFol_func ( hairSystem ) ;
         
         for fol in fol_list :
             
             exec ( "fol.{attr}.set({value}) ;".format ( attr = attr , value = value ) ) ;
             
-    def enableDynamicOverride_cmd ( self , *args ) :
+    def enableDynamicOverride_btn_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         hairSystem_list = tsl.getSelected() ;
@@ -125,7 +136,7 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'overrideDynamics' , value = 1 ) ;
     
-    def disableDynamicOverride_cmd ( self , *args ) :
+    def disableDynamicOverride_btn_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         hairSystem_list = tsl.getSelected() ;
@@ -133,7 +144,7 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'overrideDynamics' , value = 0 ) ;
     
-    def enableCollide_cmd ( self , *args ) :
+    def enableCollide_btn_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         hairSystem_list = tsl.getSelected() ;
@@ -141,76 +152,118 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 1 ) ;
     
-    def disableCollide_cmd ( self , *args ) :
+    def disableCollide_btn_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         hairSystem_list = tsl.getSelected() ;
         
         for hairSystem in hairSystem_list :
             self.enableFollicleAttr_func ( hairSystem = hairSystem , attr = 'collide' , value = 0 ) ;
-        
-    def querryGraph ( self , hairSystem , attribute ) :
-        
-        hairSystem = pm.PyNode ( hairSystem ) ;
-        
-        attrSize = pm.getAttr ( "{hairSystem}.{attribute}".format ( hairSystem = hairSystem , attribute = attribute ) , size = True ) ;
-        
-        attr_dict = {} ;
-        
+    
+    ### Copy Graph ###
+
+    def graph_getSize_func ( self , node , attribute ) :
+
+        node = pm.PyNode ( node ) ;
+
+        attrSize = pm.getAttr (
+            "{node}.{attribute}".format ( node = node , attribute = attribute ) ,
+            size = True ) ;
+
+        # get the index list, so that it won't create any unnecessary point
         counter = 0 ;
-        
-        for i in range ( 0 , attrSize ) :
+        index_list = [] ;
+
+        while ( len ( index_list ) != attrSize ) :
+
+            cmd = '''
+if node.{attribute}[{counter}].exists() :
+
+    index_list.append ( {counter} ) ;
+    '''.format ( attribute = attribute , counter = counter ) ;
+
+            exec ( cmd ) ;
+
+            counter += 1 ;
+
+            # kill the infinity loop
+            if counter == 100 :
+                break ;
+
+        return index_list ;
+
+    def graph_query_func ( self , node , attribute ) :
+        # return attrVal_dict ;
+        # attrVal_dict [ index ] = [ floatValue , position , interp ] ; 
+
+        node = pm.PyNode ( node ) ;
+
+        index_list = self.graph_getSize_func ( node = node , attribute = attribute ) ;
+
+        # start the query, 
+        attrVal_dict = {} ;
+
+        for index in index_list :
+
+            val_list = [] ;
+            attributeSuffix_list = [ '_FloatValue' , '_Position' , '_Interp' ] ;
+
+            for attributeSuffix in attributeSuffix_list :
+                val = pm.getAttr (
+                    "{node}.{attribute}[{index}].{attribute}{attributeSuffix}".format (
+                        node        = node ,
+                        attribute   = attribute ,
+                        index       = index ,
+                        attributeSuffix = attributeSuffix ) ) ;
+                val_list.append ( val ) ;
+
+            floatValue , position , interp = val_list ;
             
-            index = i + 1 ;
-            
-            point = 'point.%s' % str ( index ) ;
-            
-            floatValue = pm.getAttr (
-                "{hairSystem}.{attribute}[{index}].{attribute}_FloatValue".format (
-                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
-            
-            position = pm.getAttr (
-                "{hairSystem}.{attribute}[{index}].{attribute}_Position".format (
-                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
-            
-            attractionScale = pm.getAttr (
-                "{hairSystem}.{attribute}[{index}].{attribute}_Interp".format (
-                    hairSystem = hairSystem , attribute = attribute , index = index ) ) ;
-            
-            while ( floatValue == 0.0 ) and ( position == 0.0 ) and ( attractionScale == 0 ) :
-                                
+            attrVal_dict [ index ] = [ floatValue , position , interp ] ; 
+
+        return attrVal_dict ;
+
+    def graph_set_func ( self , node , attribute , attrVal_dict ) :
+
+        node = pm.PyNode ( node ) ;
+
+        # set the value first, regardless of the points
+        for index in attrVal_dict.keys() :
+
+            attributeSuffix_list = [ '_FloatValue' , '_Position' , '_Interp' ] ;
+
+            for val , attributeSuffix in zip ( attrVal_dict [ index ] , attributeSuffix_list ) :
+                
+                pm.setAttr (
+                    "{node}.{attribute}[{index}].{attribute}{attributeSuffix}".format (
+                        node        = node ,
+                        attribute   = attribute ,
+                        index       = index ,
+                        attributeSuffix = attributeSuffix ) , val ) ;
+
+        # get the index list, if index doesn't exist in the dictionary, remove it
+        index_list = self.graph_getSize_func ( node = node , attribute = attribute ) ;
+
+        for index in index_list :
+
+            if index not in attrVal_dict.keys() :
                 pm.removeMultiInstance (
-                    "{hairSystem}.attractionScale[{counterIndex}]".format (
-                        hairSystem = hairSystem , counterIndex = str( i + counter ) ),
-                        b = True ) ;
-                
-                counter += 1 ;
-                
-                floatValue = pm.getAttr (
-                    "{hairSystem}.{attribute}[{index}].{attribute}_FloatValue".format (
-                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
+                    "{node}.{attribute}[{index}]".format (
+                        node        = node ,
+                        attribute   = attribute ,
+                        index       = index ) ,
+                    b = True ) ;
 
-                position = pm.getAttr (
-                    "{hairSystem}.{attribute}[{index}].{attribute}_Position".format (
-                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
+    def graph_copy_func ( driver , driven , attribute ) :
 
-                attractionScale = pm.getAttr (
-                    "{hairSystem}.{attribute}[{index}].{attribute}_Interp".format (
-                        hairSystem = hairSystem , attribute = attribute , index = str( i + counter ) ) ) ;
-                
-                # kill infinate loop
-                if counter == 100 :
-                    print ( 'the counter has reached the upper limit of 100, please check the script' ) ;
-                    break ;
-                    
-                attr_dict [ str( point ) ] = [ floatValue , position , attractionScale ] ; 
-            
-        return [ attr_dict , attrSize ] ;
+        driver = pm.PyNode ( driver ) ;
+        driven = pm.PyNode ( driven ) ;
 
+        attrVal_dict = self.graph_query_func ( node = driver , attribute = attribute ) ;
+        self.graph_set_func ( node = driven , attribute = attribute , attrVal_dict = attrVal_dict ) ;
     
     ### Set ###
 
-    '''
     def getArclen ( self , hairSystem ) :
         # return min/max length
         
@@ -218,7 +271,7 @@ class GuiFunc ( object ) :
                         
         arclen_list = [] ;
         
-        fol_list = self.getFol ( hairSystem ) ;
+        fol_list = self.getFol_func ( hairSystem ) ;
         
         for fol in fol_list :
             
@@ -232,7 +285,6 @@ class GuiFunc ( object ) :
         maxlen = arclen_list[-1] ;
                                 
         return minlen , maxlen ;
-    '''
     
     def getFolLenDict_func ( self , hairSystem ) :
         
@@ -241,31 +293,33 @@ class GuiFunc ( object ) :
         arclen_list = [] ;
         folLen_dict = {} ;
         
-        fol_list = self.getFol ( hairSystem ) ;
+        fol_list = self.getFol_func ( hairSystem ) ;
+
+        print fol_list ;
+
+        for each in fol_list :
+            print each ;
         
-        for fol in fol_list :
+        # for fol in fol_list :
             
-            crvTfm = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
+        #     crvTfm = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
             
-            arclen = pm.arclen ( crvTfm.getShape() ) ;
+        #     arclen = pm.arclen ( crvTfm.getShape() ) ;
             
-            arclen_list.append ( arclen ) ;
-            folLen_dict[str(fol)] = arclen ;
+        #     arclen_list.append ( arclen ) ;
+        #     folLen_dict[str(fol)] = arclen ;
         
-        arclen_list.sort() ;
+        # arclen_list.sort() ;
         
-        minlen = arclen_list[0] ;
-        maxlen = arclen_list[-1] ;
+        # minlen = arclen_list[0] ;
+        # maxlen = arclen_list[-1] ;
         
-        folLen_dict['min'] = minlen ;
-        folLen_dict['max'] = maxlen ;
+        # folLen_dict['min'] = minlen ;
+        # folLen_dict['max'] = maxlen ;
         
-#         print folLen_dict['min'] ;
-#         print folLen_dict['max'] ;
+        # return folLen_dict ;
         
-        return folLen_dict ;
-        
-    def set_cmd ( self , *args ) :
+    def set_btn_cmd ( self , *args ) :
         
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         
@@ -274,8 +328,19 @@ class GuiFunc ( object ) :
         for hairSystem in hairSystem_list :
             
             hairSystem = pm.PyNode ( hairSystem ) ;
-                                    
-            print self.getFolLenDict_func ( hairSystem ) ;
+
+            self.getFolLenDict_func ( hairSystem ) ;
+
+#             # Copy Graphs
+#             if pm.checkBox ( self.stiffnessScale_graph_cbx , q = True , v = True ) :
+#                 self.graph_copy_func (
+#                     driver = hairSystem ,
+#                     driven ,
+#                     attribute = 'stiffnessScale' ) ;
+
+
+# self.clumpWidthScale_graph_cbx
+# self.attractionScale_graph_cbx
             
 class Gui ( object ) :
  
@@ -358,11 +423,11 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                 cw = [ ( 1 , lw ) , ( 2 , lw ) ] ;
                 with pm.rowColumnLayout ( nc = 2 , cw = cw ) :
                         
-                    pm.button ( label = 'Enable Dynamic Override' , w = lw , c = self.enableDynamicOverride_cmd ) ;
-                    pm.button ( label = 'Disable Dynamic Override' , w = lw , c = self.disableDynamicOverride_cmd ) ;
+                    pm.button ( label = 'Enable Dynamic Override' , w = lw , c = self.enableDynamicOverride_btn_cmd ) ;
+                    pm.button ( label = 'Disable Dynamic Override' , w = lw , c = self.disableDynamicOverride_btn_cmd ) ;
                     
-                    pm.button ( label = 'Enable Collide' , w = lw , c = self.enableCollide_cmd ) ;
-                    pm.button ( label = 'Disable Collide' , w = lw , c = self.disableCollide_cmd ) ;
+                    pm.button ( label = 'Enable Collide' , w = lw , c = self.enableCollide_btn_cmd ) ;
+                    pm.button ( label = 'Disable Collide' , w = lw , c = self.disableCollide_btn_cmd ) ;
                 
                 ### Attribute Input
                
@@ -379,9 +444,9 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                     
                 compAttr_list = [] ;
                 # name , default value , [ min , max ]
-                compAttr_list.append ( [ 'lengthFlex' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
-                compAttr_list.append ( [ 'damp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
-                compAttr_list.append ( [ 'stiffness' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'lengthFlex' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'damp' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'stiffness' , 0.15 , [ 0.0 , 0.0 ] ] ) ;
                 
                 cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
                 with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
@@ -389,54 +454,62 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                     for compAttr in compAttr_list :    
                         self.insertAttr ( compAttr ) ;
                 
-                # change to frame layout here
+                ### Stiffness Scale
                 pm.separator ( vis = False , h = 15 ) ;
-                
-                pm.text ( label = 'Stiffness Scale' , align = 'left' ) ;
-                pm.separator () ;
-                    
-                with pm.rowColumnLayout ( nc = 1 , w = w ) :
+                with pm.frameLayout (
+                    label       = 'Stiffness Scale' ,
+                    width       = w ,
+                    collapsable = True ,
+                    collapse    = False ,
+                    bgc         = ( 0.078 , 0.153 , 0.263 ) ,
+                    ) :
                     
                     with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
                         pm.text ( label = '' ) ;
-                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
+                        self.stiffnessScale_graph_cbx = pm.checkBox ( v = True , w = w/2 ,
+                            label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'clumpWidth' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'clumpWidth' , 0.3 , [ 0.0 , 0.0 ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                     
                         for compAttr in compAttr_list :
                             self.insertAttr ( compAttr ) ;
                     
-                # change to frame layout here
+                ### Clump Width Scale
                 pm.separator ( vis = False , h = 15 ) ;
-                
-                pm.text ( label = 'Clump Width Scale' , align = 'left' ) ;
-                pm.separator () ;
-                
-                with pm.rowColumnLayout ( nc = 1 , w = w ) :
+                with pm.frameLayout (
+                    label       = 'Clump Width Scale' ,
+                    width       = w ,
+                    collapsable = True ,
+                    collapse    = False ,
+                    bgc         = ( 0.078 , 0.153 , 0.263 ) ,
+                    ) :
 
                     with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
                         pm.text ( label = '' ) ;
-                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
-                    
-                # change to frame layout here
-                
+                        self.clumpWidthScale_graph_cbx = pm.checkBox ( v = True , w = w/2 ,
+                            label = 'Copy Graph from Hair System' ) ;
+
+                ### Attraction Scale
                 pm.separator ( vis = False , h = 15 ) ;
-                
-                pm.text ( label = 'Attraction Scale' , align = 'left' ) ;
-                pm.separator () ;
-                
-                with pm.rowColumnLayout ( nc = 1 , w = w ) :
-                    
+                with pm.frameLayout (
+                    label       = 'Attraction Scale' ,
+                    width       = w ,
+                    collapsable = True ,
+                    collapse    = False ,
+                    bgc         = ( 0.078 , 0.153 , 0.263 ) ,
+                    ) :
+                                    
                     with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
                         pm.text ( label = '' ) ;
-                        pm.checkBox ( label = 'Copy Graph from Hair System' , v = True , w = w/2 ) ;
+                        self.attractionScale_graph_cbx = pm.checkBox ( v = True , w = w/2 ,
+                            label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'startCurveAttract' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
-                    compAttr_list.append ( [ 'attractionDamp' , 0.1 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'startCurveAttract' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'attractionDamp' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                         
@@ -448,7 +521,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                 # set, and reset to dynamic override default values
                 with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
 
-                    pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_cmd ) ;
+                    pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_btn_cmd ) ;
                     pm.button ( label = 'Reset to Default Values' , w = w/2 ) ;
  
         window.show () ;
