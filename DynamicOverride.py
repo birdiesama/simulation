@@ -47,7 +47,34 @@ class General ( object ) :
                 niceName += ' ' ;
         
         return niceName ;
-          
+
+class NaturalSort ( object ) :
+
+    def __init__ ( self ) :
+        super ( NaturalSort , self ).__init__() ;
+
+    def convertKeyElem ( self , input ) :
+
+        if input.isdigit() :
+            return int ( input ) ;
+        else :
+            return input.lower() ;
+
+    def splitKey ( self , key ) :
+
+        return_list = [] ;
+
+        key = str ( key ) ;
+
+        for elem in re.split ( '([0-9]+)' , key ) :
+            return_list.append ( self.convertKeyElem ( elem ) ) ;
+
+        return return_list ;
+
+    def naturalSort ( self , list ) :
+
+        return sorted ( list , key = self.splitKey ) ;
+
 class GuiFunc ( object ) :
  
     def __init__ ( self ) :
@@ -67,6 +94,9 @@ class GuiFunc ( object ) :
  
         def getSelected ( self ) :
             return ( pm.textScrollList ( self.tsl , q = True , si = True ) ) ;
+
+        def select ( self , item ) :
+            pm.textScrollList ( self.tsl , e = True , si = item ) ;
     
     class FloatField ( object ) :
     
@@ -96,6 +126,7 @@ class GuiFunc ( object ) :
  
         tsl.clear() ;
         tsl.appendList ( hairSystem_list ) ;
+        tsl.select ( hairSystem_list[0] ) ;
     
     def hairSystem_refresh_cmd ( self , *args ) :
         
@@ -113,6 +144,8 @@ class GuiFunc ( object ) :
         
         fol_list = set ( fol_list ) ;
         fol_list = list ( fol_list ) ;
+
+        fol_list = self.naturalSort ( fol_list ) 
 
         return fol_list ;
     
@@ -254,7 +287,7 @@ if node.{attribute}[{counter}].exists() :
                         index       = index ) ,
                     b = True ) ;
 
-    def graph_copy_func ( driver , driven , attribute ) :
+    def graph_copy_func ( self , driver , driven , attribute ) :
 
         driver = pm.PyNode ( driver ) ;
         driven = pm.PyNode ( driven ) ;
@@ -295,29 +328,31 @@ if node.{attribute}[{counter}].exists() :
         
         fol_list = self.getFol_func ( hairSystem ) ;
 
-        print fol_list ;
+        for fol in fol_list :
 
-        for each in fol_list :
-            print each ;
-        
-        # for fol in fol_list :
+            crv = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
+            crvShape = crv.getShapes() ;
+
+            for shape in crvShape :
+                if 'rebuiltCurveShape' in str (shape) :
+                    crvShape.remove( shape ) ;
+
+            crvShape = crvShape[0] ;
             
-        #     crvTfm = fol.listConnections ( type = 'nurbsCurve' ) [0] ;
+            arclen = pm.arclen ( crvShape ) ;
             
-        #     arclen = pm.arclen ( crvTfm.getShape() ) ;
-            
-        #     arclen_list.append ( arclen ) ;
-        #     folLen_dict[str(fol)] = arclen ;
+            arclen_list.append ( arclen ) ;
+            folLen_dict[str(fol)] = arclen ;
         
-        # arclen_list.sort() ;
+        arclen_list.sort() ;
         
-        # minlen = arclen_list[0] ;
-        # maxlen = arclen_list[-1] ;
+        minlen = arclen_list[0] ;
+        maxlen = arclen_list[-1] ;
         
-        # folLen_dict['min'] = minlen ;
-        # folLen_dict['max'] = maxlen ;
+        folLen_dict['min'] = minlen ;
+        folLen_dict['max'] = maxlen ;
         
-        # return folLen_dict ;
+        return folLen_dict ;
         
     def set_btn_cmd ( self , *args ) :
         
@@ -328,19 +363,38 @@ if node.{attribute}[{counter}].exists() :
         for hairSystem in hairSystem_list :
             
             hairSystem = pm.PyNode ( hairSystem ) ;
+            fol_list = self.getFol_func ( hairSystem ) ;
+            fol_dict = self.getFolLenDict_func ( hairSystem ) ;
 
-            self.getFolLenDict_func ( hairSystem ) ;
+            # Copy Graphs
+            for fol in fol_list :
 
-#             # Copy Graphs
-#             if pm.checkBox ( self.stiffnessScale_graph_cbx , q = True , v = True ) :
-#                 self.graph_copy_func (
-#                     driver = hairSystem ,
-#                     driven ,
-#                     attribute = 'stiffnessScale' ) ;
+                fol = pm.PyNode ( fol ) ;
 
+                if pm.checkBox ( self.stiffnessScale_graph_cbx , q = True , v = True ) :
+                    self.graph_copy_func (
+                        driver = hairSystem ,
+                        driven = fol ,
+                        attribute = 'stiffnessScale' ) ;
 
-# self.clumpWidthScale_graph_cbx
-# self.attractionScale_graph_cbx
+                if pm.checkBox ( self.clumpWidthScale_graph_cbx , q = True , v = True ) :
+                    self.graph_copy_func (
+                        driver = hairSystem ,
+                        driven = fol ,
+                        attribute = 'clumpWidthScale' ) ;
+
+                if pm.checkBox ( self.attractionScale_graph_cbx , q = True , v = True ) :
+                    self.graph_copy_func (
+                        driver = hairSystem ,
+                        driven = fol ,
+                        attribute = 'attractionScale' ) ;
+
+            # Set Attr
+            maxlen = fol_dict ['max'] ;
+            minlen = fol_dict ['min'] ;
+
+            print maxlen ;
+            print minlen ;
             
 class Gui ( object ) :
  
@@ -528,7 +582,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
  
         self.guiInitialize_func() ;
  
-class Main ( NHairDynOvr , Gui , GuiFunc , General ) :
+class Main ( NHairDynOvr , Gui , GuiFunc , General , NaturalSort ) :
      
     def __init__ ( self ) :
         super ( Main , self ).__init__() ;
