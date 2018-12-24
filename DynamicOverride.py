@@ -392,9 +392,29 @@ if node.{attribute}[{counter}].exists() :
             # Set Attr
             maxlen = fol_dict ['max'] ;
             minlen = fol_dict ['min'] ;
+            range = float ( maxlen - minlen ) ;
 
-            print maxlen ;
-            print minlen ;
+            attr_list = [] ;
+            attr_list.extend ( [ 'lengthFlex' , 'damp' , 'stiffness' ] ) ;
+            attr_list.append ( 'clumpWidth' ) ;
+            attr_list.extend ( [ 'startCurveAttract' , 'attractionDamp' ] ) ;
+
+            for attr in attr_list :
+
+                cmd = """
+# {attr}_default_ff   = FloatField ( self.{attr}_defaultValue_floatField ) ;
+{attr}_min_ff       = FloatField ( self.{attr}_min_floatField ) ;
+{attr}_max_ff       = FloatField ( self.{attr}_max_floatField ) ;
+
+max_val = {attr}_max_ff.getValue() ;
+min_val = {attr}_min_ff.getValue() ;
+
+percentage
+
+""".format ( attr = attr ) ;
+
+            
+
             
 class Gui ( object ) :
  
