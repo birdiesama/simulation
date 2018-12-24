@@ -392,6 +392,10 @@ if node.{attribute}[{counter}].exists() :
             # Set Attr
             maxlen = float ( fol_dict ['max'] ) ;
             minlen = float ( fol_dict ['min'] ) ;
+            
+            print maxlen ;
+            print minlen ;
+            
             lenRange = maxlen - minlen ;
 
             attr_list = [] ;
@@ -410,12 +414,12 @@ max_val = {attr}_max_ff.getValue() ;
 min_val = {attr}_min_ff.getValue() ;
 
 valRange = max_val - min_val ;
-valPerPercentage = valRange / lenRange ;
+valPerPercentage = valRange / 100 ;
 
 for fol in fol_list :
-    
     len = fol_dict [ str(fol) ] ;
-    val = min_val + ( (len/maxlen) * valPerPercentage ) ;
+    val = min_val + ( ( (len-minlen)/lenRange*100 ) * valPerPercentage ) ;
+
     fol.{attr}.set ( val ) ;
 """.format ( attr = attr ) ;
                 
@@ -523,9 +527,9 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                     
                 compAttr_list = [] ;
                 # name , default value , [ min , max ]
-                compAttr_list.append ( [ 'lengthFlex' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
-                compAttr_list.append ( [ 'damp' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
-                compAttr_list.append ( [ 'stiffness' , 0.15 , [ 0.0 , 0.0 ] ] ) ;
+                compAttr_list.append ( [ 'lengthFlex' , 0.0 , [ 0.2 , 0.5 ] ] ) ;
+                compAttr_list.append ( [ 'damp' , 0.0 , [ 0.2 , 1 ] ] ) ;
+                compAttr_list.append ( [ 'stiffness' , 0.15 , [ 0.2 , 0.5 ] ] ) ;
                 
                 cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
                 with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
@@ -549,7 +553,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                             label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'clumpWidth' , 0.3 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'clumpWidth' , 0.3 , [ 0.2 , 0.3 ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                     
@@ -587,8 +591,8 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                             label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'startCurveAttract' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
-                    compAttr_list.append ( [ 'attractionDamp' , 0.0 , [ 0.0 , 0.0 ] ] ) ;
+                    compAttr_list.append ( [ 'startCurveAttract' , 0.0 , [ 0.3 , 1.25 ] ] ) ;
+                    compAttr_list.append ( [ 'attractionDamp' , 0.0 , [ 0.1 , 0.3 ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                         
