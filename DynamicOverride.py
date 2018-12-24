@@ -390,9 +390,9 @@ if node.{attribute}[{counter}].exists() :
                         attribute = 'attractionScale' ) ;
 
             # Set Attr
-            maxlen = fol_dict ['max'] ;
-            minlen = fol_dict ['min'] ;
-            range = float ( maxlen - minlen ) ;
+            maxlen = float ( fol_dict ['max'] ) ;
+            minlen = float ( fol_dict ['min'] ) ;
+            lenRange = maxlen - minlen ;
 
             attr_list = [] ;
             attr_list.extend ( [ 'lengthFlex' , 'damp' , 'stiffness' ] ) ;
@@ -402,19 +402,24 @@ if node.{attribute}[{counter}].exists() :
             for attr in attr_list :
 
                 cmd = """
-# {attr}_default_ff   = FloatField ( self.{attr}_defaultValue_floatField ) ;
-{attr}_min_ff       = FloatField ( self.{attr}_min_floatField ) ;
-{attr}_max_ff       = FloatField ( self.{attr}_max_floatField ) ;
+# {attr}_default_ff   = self.FloatField ( self.{attr}_defaultValue_floatField ) ;
+{attr}_min_ff       = self.FloatField ( self.{attr}_min_floatField ) ;
+{attr}_max_ff       = self.FloatField ( self.{attr}_max_floatField ) ;
 
 max_val = {attr}_max_ff.getValue() ;
 min_val = {attr}_min_ff.getValue() ;
 
-percentage
+valRange = max_val - min_val ;
+valPerPercentage = valRange / lenRange ;
 
+for fol in fol_list :
+    
+    len = fol_dict [ str(fol) ] ;
+    val = min_val + ( (len/maxlen) * valPerPercentage ) ;
+    fol.{attr}.set ( val ) ;
 """.format ( attr = attr ) ;
-
-            
-
+                
+                exec ( cmd ) ;
             
 class Gui ( object ) :
  
