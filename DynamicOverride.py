@@ -623,3 +623,16 @@ def run ( *args ) :
 run () ;
 
 # make some follicle stiff by selecting curves
+
+'''
+usable version
+
+known bugs : 
+- If there's only 1 curve in the hair system the script will not work as it will produce the len range of 0
+- Need maximum value for lengthFlex , Damp, Stiffness, etc.
+
+Features to add : 
+- Make stiff curve (static) from selected
+- Reset values to default
+'''
+
