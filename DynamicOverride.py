@@ -393,9 +393,6 @@ if node.{attribute}[{counter}].exists() :
             maxlen = float ( fol_dict ['max'] ) ;
             minlen = float ( fol_dict ['min'] ) ;
             
-            print maxlen ;
-            print minlen ;
-            
             lenRange = maxlen - minlen ;
 
             attr_list = [] ;
@@ -605,7 +602,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                 with pm.rowColumnLayout ( nc = 2 , cw = [ ( 1 , w/2 ) , ( 2 , w/2 ) ] ) :
 
                     pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_btn_cmd ) ;
-                    pm.button ( label = 'Reset to Default Values' , w = w/2 ) ;
+                    pm.button ( label = 'Reset to Default Values (WIP)' , w = w/2 , enable = False ) ;
  
         window.show () ;
  
