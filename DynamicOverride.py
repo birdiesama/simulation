@@ -356,6 +356,8 @@ if node.{attribute}[{counter}].exists() :
         
     def set_btn_cmd ( self , *args ) :
         
+        self.enableDynamicOverride_btn_cmd() ;
+        
         tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         
         hairSystem_list = tsl.getSelected() ;
@@ -453,18 +455,54 @@ class Gui ( object ) :
         attr = list[0] ;
         niceName = self.composeNiceName ( attr ) ;
         defaultValue = list[1] ;
-        min = list[2][0] ;
-        max = list[2][1] ;
+        
+        min_val = list[2] ;
+        min_dv  = min_val[0] ;
+        min_min = min_val[1] ;
+        min_max = min_val[2] ;
+        
+        max_val = list[3] ;
+        max_dv  = max_val[0] ;
+        max_min = max_val[1] ;
+        max_max = max_val[2] ;
 
+        # create Attr and set Default for shortest and longest value
+        
         cmd = """                        
 pm.text ( label = '{niceName}' , w = w/6 ) ;
 self.{attr}_defaultValue_floatField = pm.floatField ( precision = 3 , v = {defaultValue} , enable = False , w = w/6 ) ;
-self.{attr}_min_floatField = pm.floatField ( precision = 3 , v = {min} , w = w/3 ) ;
-self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3 ) ;
-""".format ( attr = attr , niceName = niceName , defaultValue = defaultValue , min = min , max = max ) ;
-
+self.{attr}_min_floatField = pm.floatField ( precision = 3 , v = {min_dv} , w = w/3 ) ;
+self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max_dv} , w = w/3 ) ;
+""".format ( attr = attr ,
+            niceName        = niceName ,
+            defaultValue    = defaultValue ,
+            min_dv          = min_dv ,
+            max_dv          = max_dv ) ;
+            
         exec ( cmd ) ;
 
+        # set Limit for shortest and longest value if value != None 
+        
+        if min_min :
+            cmd = "pm.floatField ( self.{attr}_min_floatField , e = True , min = {min_min} ) ;".format (
+                attr = attr , min_min = min_min ) ;
+            exec ( cmd ) ;
+        
+        if min_max :
+            cmd = "pm.floatField ( self.{attr}_min_floatField , e = True , max = {min_max} ) ;".format (
+                attr = attr , min_max = min_max ) ;
+            exec ( cmd ) ;
+        
+        if max_min :
+            cmd = "pm.floatField ( self.{attr}_min_floatField , e = True , min = {max_min} ) ;".format (
+                attr = attr , max_min = max_min ) ;
+            exec ( cmd ) ;
+        
+        if max_max :
+            cmd = "pm.floatField ( self.{attr}_min_floatField , e = True , max = {max_max} ) ;".format (
+                attr = attr , max_max = max_max ) ;
+            exec ( cmd ) ;
+            
     def showGui ( self ) :
  
         w = self.width ;
@@ -524,9 +562,9 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                     
                 compAttr_list = [] ;
                 # name , default value , [ min , max ]
-                compAttr_list.append ( [ 'lengthFlex' , 0.0 , [ 0.2 , 0.5 ] ] ) ;
-                compAttr_list.append ( [ 'damp' , 0.0 , [ 0.2 , 1 ] ] ) ;
-                compAttr_list.append ( [ 'stiffness' , 0.15 , [ 0.2 , 0.5 ] ] ) ;
+                compAttr_list.append ( [ 'lengthFlex' , 0.0 , [ 0.2 , 0.0 , 1.0 ] , [ 0.5 , 0 , 1 ] ] ) ;
+                compAttr_list.append ( [ 'damp' , 0.0 , [ 0.2 , None , None ] , [ 1 , None , None ] ] ) ;
+                compAttr_list.append ( [ 'stiffness' , 0.15 , [ 0.2 , None , None ] , [ 0.5 , None , None ] ] ) ;
                 
                 cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ;
                 with pm.rowColumnLayout ( nc = 4 , cw = cw ) :
@@ -550,7 +588,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                             label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'clumpWidth' , 0.3 , [ 0.2 , 0.3 ] ] ) ;
+                    compAttr_list.append ( [ 'clumpWidth' , 0.3 , [ 0.2 , None , None ] , [ 0.3 , None , None ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                     
@@ -588,8 +626,8 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max} , w = w/3
                             label = 'Copy Graph from Hair System' ) ;
                     
                     compAttr_list = [] ;
-                    compAttr_list.append ( [ 'startCurveAttract' , 0.0 , [ 0.3 , 1.25 ] ] ) ;
-                    compAttr_list.append ( [ 'attractionDamp' , 0.0 , [ 0.1 , 0.3 ] ] ) ;
+                    compAttr_list.append ( [ 'startCurveAttract' , 0.0 , [ 0.3 , None , None ] , [ 1.25 , None , None ] ] ) ;
+                    compAttr_list.append ( [ 'attractionDamp' , 0.0 , [ 0.1 , None , None ] , [ 0.3 , None , None ] ] ) ;
                     
                     with pm.rowColumnLayout ( nc = 4 , cw = [ ( 1 , w/4 ) , ( 2 , w/4 ) , ( 3 , w/4 ) , ( 4 , w/4 ) ] ) :
                         
@@ -630,6 +668,7 @@ usable version
 known bugs : 
 - If there's only 1 curve in the hair system the script will not work as it will produce the len range of 0
 - Need maximum value for lengthFlex , Damp, Stiffness, etc.
+- When click set, need to enable dynamic override too
 
 Features to add : 
 - Make stiff curve (static) from selected
