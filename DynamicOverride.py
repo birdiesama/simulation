@@ -357,15 +357,6 @@ if node.{attribute}[{counter}].exists() :
         folLen_dict['max'] = maxlen ;
         
         return folLen_dict ;
-    
-    def test_cmd ( self , *args ) :
-
-        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
-        
-        hairSystem_list = tsl.getSelected() ;
-
-        for hairSystem in hairSystem_list :
-            self.setUiDvVal_func ( hairSystem ) ;
                         
     def setUiDvVal_func ( self , hairSystem , *args ) :
         
@@ -385,12 +376,22 @@ if node.{attribute}[{counter}].exists() :
             attrMin_val = pm.getAttr ( minLenFol.nodeName() + '.' + attr ) ;
             attrMax_val = pm.getAttr ( maxLenFol.nodeName() + '.' + attr ) ;
             
-            attr_min_ff = self.FloatField ( '{attr}_min_floatField'.format ( attr = attr ) ) ;
-            attr_min_ff.setVal ( attrMin_val ) ;
+            cmd = "pm.floatField ( self.{attr}_min_floatField , e = True , v = attrMin_val ) ;".format (
+                 attr = attr ) ;
+            exec ( cmd ) ;
                                            
-            attr_max_ff = self.FloatField ( '{attr}_min_floatField'.format ( attr = attr ) ) ;
-            attr_max_ff.setVal ( attrMax_val ) ;
-                                           
+            cmd = "pm.floatField ( self.{attr}_max_floatField , e = True , v = attrMax_val ) ;".format (
+                 attr = attr ) ;
+            exec ( cmd ) ;
+    
+    def hairSystem_tsl_sc ( self , *args ) :
+        
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
+        
+        hairSystem_list = tsl.getSelected() ;
+        
+        self.setUiDvVal_func ( hairSystem_list[-1] ) ;
+        
     def set_btn_cmd ( self , *args ) :
         
         self.enableDynamicOverride_btn_cmd() ;
@@ -570,7 +571,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max_dv} , w = 
                         self.hairSystem_refresh_btn = pm.button ( label = 'Refresh' ,
                             c = self.hairSystem_refresh_cmd ) ;
 
-                    self.hairSystem_tsl = pm.textScrollList ( w = w , h = 100 , ams = True ) ;
+                    self.hairSystem_tsl = pm.textScrollList ( w = w , h = 100 , ams = True , sc = self.hairSystem_tsl_sc ) ;
                     
                 # Dynamic Override , Collide
                 
@@ -678,9 +679,7 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max_dv} , w = 
 
                     pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_btn_cmd ) ;
                     pm.button ( label = 'Reset to Default Values (WIP)' , w = w/2 , enable = False ) ;
-                    
-                    pm.button ( label = 'Test' , w = w/2 , c = self.test_cmd ) ;
- 
+                     
         window.show () ;
  
         self.guiInitialize_func() ;
