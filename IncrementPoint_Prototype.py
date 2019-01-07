@@ -36,7 +36,7 @@ for i in range ( 0 , len ( selection_list )  ) :
         y = nextDis[1] - dis[1]  ;
         z = nextDis[2] - dis[2]  ;
 
-        difDis = [ x , y , x ] ;
+        difDis = [ x , y , z ] ;
         
         inc = round ( ( target_list[i][2] / maxDis ) * increment ) ;
         inc = int ( inc ) ;
@@ -47,5 +47,7 @@ for i in range ( 0 , len ( selection_list )  ) :
             incY = dis[1] + ( difDis[1]/inc * j ) ;
             incZ = dis[2] + ( difDis[2]/inc * j ) ;
             pointPos_list.append ( [ incX , incY ,incZ ] ) ;
-            
+
+for point in pointPos_list :
+    print point ;
 pm.curve ( d = 1 , p = pointPos_list ) ;
