@@ -1,5 +1,6 @@
 import pymel.core as pm ;
 import re ;
+import operator ;
 
 class NHairDynOvr ( object ) :
      
@@ -105,6 +106,9 @@ class GuiFunc ( object ) :
         
         def getValue ( self ) :
             return ( pm.floatField ( self.ff , q = True , v = True ) ) ;
+        
+        def setValue ( self , val ) :
+            pm.floatField ( self.ff , q = True , v = val ) ;
  
     class CheckBox ( object ) :
 
@@ -353,7 +357,40 @@ if node.{attribute}[{counter}].exists() :
         folLen_dict['max'] = maxlen ;
         
         return folLen_dict ;
+    
+    def test_cmd ( self , *args ) :
+
+        tsl = self.TextScrollList ( self.hairSystem_tsl ) ;
         
+        hairSystem_list = tsl.getSelected() ;
+
+        for hairSystem in hairSystem_list :
+            self.setUiDvVal_func ( hairSystem ) ;
+                        
+    def setUiDvVal_func ( self , hairSystem , *args ) :
+        
+        hairSystem = pm.PyNode ( hairSystem ) ;
+
+        folLen_dict = self.getFolLenDict_func( hairSystem ) ;
+        del folLen_dict [ 'min' ] ;
+        del folLen_dict [ 'max' ] ;
+        folLen_keys = sorted ( folLen_dict.items() , key = operator.itemgetter(1) ) ;
+
+        minLenFol = pm.PyNode ( str(folLen_keys[0][0]) ) ;
+        maxLenFol = pm.PyNode ( str(folLen_keys[-1][0]) ) ;
+
+        attr_list = [ 'lengthFlex' , 'damp' , 'stiffness' , 'clumpWidth' , 'startCurveAttract' , 'attractionDamp' ] ;
+
+        for attr in attr_list :
+            attrMin_val = pm.getAttr ( minLenFol.nodeName() + '.' + attr ) ;
+            attrMax_val = pm.getAttr ( maxLenFol.nodeName() + '.' + attr ) ;
+            
+            attr_min_ff = self.FloatField ( '{attr}_min_floatField'.format ( attr = attr ) ) ;
+            attr_min_ff.setVal ( attrMin_val ) ;
+                                           
+            attr_max_ff = self.FloatField ( '{attr}_min_floatField'.format ( attr = attr ) ) ;
+            attr_max_ff.setVal ( attrMax_val ) ;
+                                           
     def set_btn_cmd ( self , *args ) :
         
         self.enableDynamicOverride_btn_cmd() ;
@@ -641,6 +678,8 @@ self.{attr}_max_floatField = pm.floatField ( precision = 3 , v = {max_dv} , w = 
 
                     pm.button ( label = 'Set' , w = w/2 , bgc = ( 1 , 1 , 1 ) , c = self.set_btn_cmd ) ;
                     pm.button ( label = 'Reset to Default Values (WIP)' , w = w/2 , enable = False ) ;
+                    
+                    pm.button ( label = 'Test' , w = w/2 , c = self.test_cmd ) ;
  
         window.show () ;
  
