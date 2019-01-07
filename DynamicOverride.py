@@ -705,7 +705,6 @@ usable version
 
 known bugs : 
 - If there's only 1 curve in the hair system the script will not work as it will produce the len range of 0
-- Need maximum value for lengthFlex , Damp, Stiffness, etc.
 - When click set, need to enable dynamic override too
 
 Features to add : 
